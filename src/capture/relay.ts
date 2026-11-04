@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getEnv } from "@/lib/env";
+import { logApi } from "@/market/audit";
 
 export class RelayError extends Error {
   constructor(message: string) {
@@ -31,6 +32,15 @@ const EvalSchema = z.object({
 const MAX_TAB_ATTEMPTS = 3;
 /** How long a Cloudflare-challenged tab is skipped before it is tried again. */
 const BAD_TAB_TTL_MS = 5 * 60_000;
+
+/** Zod schemas return arrays for list endpoints and objects for the per-ticker chunk. */
+function countRows(value: unknown): number | null {
+  if (Array.isArray(value)) return value.length;
+  if (value && typeof value === "object" && Array.isArray((value as { rows?: unknown }).rows)) {
+    return (value as { rows: unknown[] }).rows.length;
+  }
+  return null;
+}
 
 interface Pending {
   resolve: (value: unknown) => void;
@@ -73,7 +83,38 @@ export class RelayClient {
     this.#baseUrl = baseUrl.replace(/\/$/, "");
   }
 
-  async evaluate<S extends z.ZodType>(expression: string, schema: S, timeoutMs = 45_000): Promise<z.infer<S>> {
+  async evaluate<S extends z.ZodType>(
+    expression: string,
+    schema: S,
+    timeoutMs = 45_000,
+    endpoint = "IDX"
+  ): Promise<z.infer<S>> {
+    const t0 = Date.now();
+    try {
+      const value = await this.#evaluate(expression, schema, timeoutMs);
+      logApi({
+        endpoint,
+        ok: true,
+        status: 200,
+        durationMs: Date.now() - t0,
+        rows: countRows(value),
+      });
+      return value;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const http = /HTTP (\d{3})/.exec(message);
+      logApi({
+        endpoint,
+        ok: false,
+        status: http ? Number(http[1]) : null,
+        durationMs: Date.now() - t0,
+        message,
+      });
+      throw err;
+    }
+  }
+
+  async #evaluate<S extends z.ZodType>(expression: string, schema: S, timeoutMs: number): Promise<z.infer<S>> {
     for (let attempt = 0; ; attempt++) {
       const session = await this.#ensureSession();
       try {

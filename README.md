@@ -53,6 +53,7 @@ Alurnya:
 - `/stocks` harga terakhir, pemegang terbesar, dan konsentrasi kepemilikan.
 - `/sector-rotation` return 5, 21, dan 63 sesi per sektor dibanding IHSG.
 - `/bandar-detector` proksi akumulasi dan distribusi dari harga dan volume, bukan data broker.
+- `/logs` kesehatan panggilan ke endpoint IDX, log permintaan terakhir, dan log tiap siklus capture.
 - Bilah atas berisi waktu data IDX, IHSG, dan lonceng notifikasi.
 - Panel **Ask AI** memanggil agent yang punya tool untuk membaca database, mencari dokumen, dan menelusuri web.
 
@@ -69,6 +70,8 @@ Seluruh angka di bawah diambil dari capture IDX pada 4 November 2026, 16:00 WIB.
 ![Rotasi sektor](docs/screens/sector-rotation.png)
 
 ![Bandar Detector](docs/screens/bandar-detector.png)
+
+![Log API dan capture](docs/screens/logs.png)
 
 ## Menjalankan
 

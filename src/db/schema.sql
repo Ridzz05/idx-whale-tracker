@@ -134,3 +134,29 @@ CREATE TABLE IF NOT EXISTS idx_index_quotes (
   idx_time TEXT,
   captured_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS api_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  ok INTEGER NOT NULL,
+  status INTEGER,
+  duration_ms INTEGER NOT NULL,
+  rows INTEGER,
+  message TEXT
+);
+
+CREATE INDEX IF NOT EXISTS api_log_ts ON api_log(ts);
+
+CREATE TABLE IF NOT EXISTS capture_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts TEXT NOT NULL,
+  state TEXT NOT NULL,
+  watchlist INTEGER,
+  quotes INTEGER,
+  lag_seconds INTEGER,
+  duration_ms INTEGER,
+  message TEXT
+);
+
+CREATE INDEX IF NOT EXISTS capture_log_ts ON capture_log(ts);
