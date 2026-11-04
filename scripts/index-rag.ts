@@ -1,10 +1,14 @@
 import { buildDocs } from "@/rag/build";
 import { embedMissing } from "@/rag/embed";
+import { runLoggedJob } from "@/market/audit";
 
 async function main() {
-  const buildSummary = buildDocs();
-  const embedSummary = await embedMissing();
-  console.log(JSON.stringify({ ...buildSummary, ...embedSummary }, null, 2));
+  const summary = await runLoggedJob("index:rag", async () => {
+    const buildSummary = buildDocs();
+    const embedSummary = await embedMissing();
+    return { ...buildSummary, ...embedSummary };
+  });
+  console.log(JSON.stringify(summary, null, 2));
 }
 
 main().catch((err) => {

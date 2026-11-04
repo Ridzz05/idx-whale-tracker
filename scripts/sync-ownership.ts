@@ -3,6 +3,7 @@ import path from "node:path";
 import { getDb } from "@/db/client";
 import { importOwnershipXlsx, parseOwnershipXlsx } from "@/ingest/ownership";
 import { fetchLatestFromIdx } from "@/ingest/idx-fetch";
+import { runLoggedJob } from "@/market/audit";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -75,7 +76,7 @@ async function main() {
   }
 }
 
-main().catch((err) => {
+runLoggedJob("sync:ownership", main).catch((err) => {
   console.error("sync:ownership gagal:", err instanceof Error ? err.message : err);
   process.exit(1);
 });

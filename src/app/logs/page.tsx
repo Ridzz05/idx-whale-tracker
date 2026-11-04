@@ -1,5 +1,5 @@
 import React from "react";
-import { apiHealth, recentApiLog, recentCaptureLog } from "@/market/audit";
+import { apiHealth, recentApiLog, recentCaptureLog, recentJobLog } from "@/market/audit";
 import { EmptyState, PageHeader, Panel, ScrollTable, StatTile } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -43,13 +43,14 @@ export default async function LogsPage() {
   const health = apiHealth(24);
   const api = recentApiLog(80);
   const captures = recentCaptureLog(80);
+  const jobs = recentJobLog(40);
   const lastCapture = captures[0];
 
   return (
     <>
       <PageHeader
         title="Logs"
-        description={`Jejak panggilan ke endpoint IDX dan tiap siklus capture. Jendela kesehatan ${health.windowHours} jam terakhir, dibaca dari tabel api_log dan capture_log.`}
+        description={`Jejak panggilan ke endpoint IDX, tiap siklus capture, dan tiap job CLI. Jendela kesehatan ${health.windowHours} jam terakhir, dibaca dari tabel api_log, capture_log, dan job_log.`}
         meta={health.lastOkTs ? `Panggilan sukses terakhir: ${wib(health.lastOkTs)} WIB` : undefined}
       />
 
@@ -186,6 +187,44 @@ export default async function LogsPage() {
                     <td className="num">{r.duration_ms === null ? "-" : ms(r.duration_ms)}</td>
                     <td className="text-muted">
                       <Json value={r.message ?? ""} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollTable>
+        )}
+      </Panel>
+
+      <Panel title="Log job" aside="Satu baris per job CLI: sync, scan, dan index">
+        {jobs.length === 0 ? (
+          <EmptyState
+            title="Belum ada job yang tercatat"
+            hint="Job menulis satu baris saat selesai, lewat npm run sync:market, sync:ownership, scan:bandar, atau index:rag."
+            command="npm run scan:bandar"
+          />
+        ) : (
+          <ScrollTable>
+            <table className="data-table">
+              <caption className="sr-only">Riwayat job CLI beserta ringkasannya</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Waktu</th>
+                  <th scope="col">Job</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="text-right">Durasi</th>
+                  <th scope="col">Ringkasan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.map((r) => (
+                  <tr key={r.id}>
+                    <td className="font-mono whitespace-nowrap">{wib(r.ts)}</td>
+                    <td className="font-mono">{r.job}</td>
+                    <td className={r.state === "ok" ? "text-gain" : "text-loss font-bold"}>{r.state}</td>
+                    <td className="num">{ms(r.duration_ms)}</td>
+                    <td className="text-muted">
+                      <Json value={r.message && r.state === "error" ? r.message : (r.summary ?? "")} />
                     </td>
                   </tr>
                 ))}

@@ -1,5 +1,6 @@
 import { getDb } from "@/db/client";
 import { scoreStock, type Candle } from "@/analytics/bandar";
+import { runLoggedJob } from "@/market/audit";
 
 export function runBandarScan(scanDate?: string): {
   scanDate: string;
@@ -64,6 +65,10 @@ export function runBandarScan(scanDate?: string): {
 const isMain =
   process.argv[1] && process.argv[1].replace(/\\/g, "/").endsWith("scripts/scan-bandar.ts");
 if (isMain) {
-  const summary = runBandarScan();
-  console.log(JSON.stringify(summary, null, 2));
+  runLoggedJob("scan:bandar", () => runBandarScan())
+    .then((summary) => console.log(JSON.stringify(summary, null, 2)))
+    .catch((err) => {
+      console.error("scan:bandar gagal:", err instanceof Error ? err.message : err);
+      process.exit(1);
+    });
 }

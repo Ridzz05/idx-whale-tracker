@@ -53,7 +53,7 @@ Alurnya:
 - `/stocks` harga terakhir, pemegang terbesar, dan konsentrasi kepemilikan.
 - `/sector-rotation` return 5, 21, dan 63 sesi per sektor dibanding IHSG.
 - `/bandar-detector` proksi akumulasi dan distribusi dari harga dan volume, bukan data broker.
-- `/logs` kesehatan panggilan ke endpoint IDX, log permintaan terakhir, dan log tiap siklus capture.
+- `/logs` kesehatan panggilan ke endpoint IDX, log permintaan terakhir, log tiap siklus capture, dan log tiap job CLI.
 - Bilah atas berisi waktu data IDX, IHSG, dan lonceng notifikasi.
 - Panel **Ask AI** memanggil agent yang punya tool untuk membaca database, mencari dokumen, dan menelusuri web.
 
