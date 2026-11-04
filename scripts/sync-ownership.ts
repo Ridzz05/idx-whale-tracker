@@ -1,8 +1,31 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getDb } from "@/db/client";
+import { isPeriodStale, latestPeriod, periodAgeDays } from "@/db/queries";
 import { importOwnershipXlsx, parseOwnershipXlsx } from "@/ingest/ownership";
 import { fetchLatestFromIdx } from "@/ingest/idx-fetch";
+
+/**
+ * Nothing schedules the next import, and a stale period is silent: it looks exactly like
+ * a healthy database. Say the age out loud every run so the gap cannot go unnoticed.
+ */
+function reportPeriodAge() {
+  const period = latestPeriod();
+  if (!period) {
+    console.warn("PERINGATAN: belum ada periode kepemilikan di database.");
+    return;
+  }
+  const age = periodAgeDays(period);
+  if (isPeriodStale(period)) {
+    console.warn(
+      `PERINGATAN: periode kepemilikan terbaru ${period} sudah ${age} hari. ` +
+        `Rilis KSEI biasanya muncul 3-4 minggu setelah tanggal periode, pernah sampai 56 hari. ` +
+        `Unduh rilis terbaru ke data_src/1pct lalu jalankan ulang.`
+    );
+  } else {
+    console.log(`Periode kepemilikan terbaru: ${period} (${age} hari).`);
+  }
+}
 
 async function main() {
   const args = process.argv.slice(2);
@@ -22,6 +45,7 @@ async function main() {
     const resolved = path.resolve(process.cwd(), fileArg);
     const summary = await importOwnershipXlsx(resolved);
     console.log(JSON.stringify(summary, null, 2));
+    reportPeriodAge();
     return;
   }
 
@@ -73,6 +97,7 @@ async function main() {
       console.log(JSON.stringify(summary, null, 2));
     }
   }
+  reportPeriodAge();
 }
 
 main().catch((err) => {

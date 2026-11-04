@@ -12,7 +12,7 @@ import {
   parseOwnershipXlsx,
 } from "@/ingest/ownership";
 import { initDb, resetDbForTests } from "@/db/client";
-import { whaleDeltas } from "@/db/queries";
+import { whaleDeltas, isPeriodStale, periodAgeDays } from "@/db/queries";
 import { retrieve } from "@/rag/retrieve";
 import { assertSafePublicUrl } from "@/web/fetch";
 
@@ -294,5 +294,21 @@ describe("whaleDeltas", () => {
     expect(byId.get(4)?.cur_shares).toBe(0);
     expect(byId.get(4)?.delta_shares).toBe(-2_000);
     expect(byId.has(5)).toBe(false);
+  });
+});
+
+describe("isPeriodStale", () => {
+  const at = (iso: string) => new Date(`${iso}T00:00:00Z`);
+
+  it("treats the 45th day as on time and the 46th as stale", () => {
+    expect(periodAgeDays("2026-09-30", at("2026-11-14"))).toBe(45);
+    expect(isPeriodStale("2026-09-30", at("2026-11-14"))).toBe(false);
+    expect(isPeriodStale("2026-09-30", at("2026-11-15"))).toBe(true);
+  });
+
+  it("keeps a fresh period quiet and flags the 56-day lag seen in practice", () => {
+    expect(isPeriodStale("2026-09-30", at("2026-11-04"))).toBe(false); // 35 days
+    expect(periodAgeDays("2026-08-31", at("2026-10-26"))).toBe(56);
+    expect(isPeriodStale("2026-08-31", at("2026-10-26"))).toBe(true);
   });
 });

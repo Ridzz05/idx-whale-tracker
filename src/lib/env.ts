@@ -51,6 +51,7 @@ export function getEnv(): Env {
     LLM_API_KEY: process.env.LLM_API_KEY || undefined,
     LLM_MODEL: process.env.LLM_MODEL || undefined,
     EMBEDDING_MODEL: process.env.EMBEDDING_MODEL || undefined,
+    DB_PATH: process.env.DB_PATH || undefined,
     IDX_WATCHLIST_SIZE: process.env.IDX_WATCHLIST_SIZE || undefined,
     IDX_REQUEST_GAP_MS: process.env.IDX_REQUEST_GAP_MS || undefined,
     CHROME_PATH: process.env.CHROME_PATH || undefined,

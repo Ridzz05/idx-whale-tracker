@@ -573,6 +573,16 @@ export function periodAgeDays(period: string, now = new Date()): number {
   return Math.max(0, Math.floor((now.getTime() - then) / 86_400_000));
 }
 
+/**
+ * Releases lag 3-4 weeks after the period date, worst observed 56 days, so anything past
+ * 45 days is worth saying out loud. Exact day 45 is still treated as on time.
+ */
+export const STALE_PERIOD_DAYS = 45;
+
+export function isPeriodStale(period: string, now = new Date()): boolean {
+  return periodAgeDays(period, now) > STALE_PERIOD_DAYS;
+}
+
 export function overviewStats(): OverviewStats {
   const db = getDb();
   const period = latestPeriod();
