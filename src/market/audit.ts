@@ -220,3 +220,74 @@ export function recentCaptureLog(limit = 60): CaptureLogRow[] {
     .all(limit);
   return z.array(CaptureRowSchema).parse(rows);
 }
+
+export interface JobLogEntry {
+  job: string;
+  state: "ok" | "error";
+  durationMs: number;
+  summary?: unknown;
+  message?: string | null;
+}
+
+/**
+ * CLI jobs (sync, scan, index) write one row when they finish. A failing write must never
+ * turn a finished job into a failed one, so the error only reaches stderr.
+ */
+export function logJob(entry: JobLogEntry) {
+  try {
+    const db = getDb();
+    const res = db
+      .prepare(
+        `INSERT INTO job_log (ts, job, state, duration_ms, summary, message)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        new Date().toISOString(),
+        entry.job,
+        entry.state,
+        entry.durationMs,
+        entry.summary === undefined ? null : JSON.stringify(entry.summary),
+        entry.message ?? null
+      );
+    db.prepare(`DELETE FROM job_log WHERE id <= ?`).run(Number(res.lastInsertRowid) - KEEP);
+  } catch (err) {
+    console.error("[job-log] gagal menulis", entry.job, err);
+  }
+}
+
+/** Wraps a CLI job so its outcome is recorded whatever it returns or throws. */
+export async function runLoggedJob<T>(job: string, fn: () => Promise<T> | T): Promise<T> {
+  const t0 = Date.now();
+  try {
+    const result = await fn();
+    logJob({ job, state: "ok", durationMs: Date.now() - t0, summary: result });
+    return result;
+  } catch (err) {
+    logJob({
+      job,
+      state: "error",
+      durationMs: Date.now() - t0,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
+}
+
+const JobRowSchema = z.object({
+  id: z.number(),
+  ts: z.string(),
+  job: z.string(),
+  state: z.string(),
+  duration_ms: z.number(),
+  summary: z.string().nullable(),
+  message: z.string().nullable(),
+});
+
+export type JobLogRow = z.infer<typeof JobRowSchema>;
+
+export function recentJobLog(limit = 40): JobLogRow[] {
+  const rows = getDb()
+    .prepare(`SELECT id, ts, job, state, duration_ms, summary, message FROM job_log ORDER BY id DESC LIMIT ?`)
+    .all(limit);
+  return z.array(JobRowSchema).parse(rows);
+}

@@ -160,3 +160,15 @@ CREATE TABLE IF NOT EXISTS capture_log (
 );
 
 CREATE INDEX IF NOT EXISTS capture_log_ts ON capture_log(ts);
+
+CREATE TABLE IF NOT EXISTS job_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts TEXT NOT NULL,
+  job TEXT NOT NULL,
+  state TEXT NOT NULL,
+  duration_ms INTEGER NOT NULL,
+  summary TEXT,
+  message TEXT
+);
+
+CREATE INDEX IF NOT EXISTS job_log_ts ON job_log(ts);

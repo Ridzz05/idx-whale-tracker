@@ -1,5 +1,6 @@
 import { closeRelay } from "@/capture/relay";
 import { syncMarket } from "@/ingest/market";
+import { runLoggedJob } from "@/market/audit";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -16,7 +17,7 @@ async function main() {
 
   // The relay socket keeps the Node event loop alive after the work is done.
   try {
-    const summary = await syncMarket({ sessions });
+    const summary = await runLoggedJob("sync:market", () => syncMarket({ sessions }));
     console.log(
       JSON.stringify(
         {
