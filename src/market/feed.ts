@@ -3,6 +3,7 @@ import { fetchIndexList, fetchLiveQuotes, fetchTopByValue, IdxBlockedError, type
 import { getEnv } from "@/lib/env";
 import { upsertLiveDocs } from "@/rag/live";
 import { applyCooldown, detectAlerts, topMovers } from "./alerts";
+import { logCapture } from "./audit";
 import { indexTimeToWib, intervalFor, isMarketHours, wibDate } from "./hours";
 import { loadAvgVolume, recentAlerts, saveAlert, saveCapture } from "./store";
 import type { FeedEvent, FeedStatus, MarketAlert, Quote } from "./types";
@@ -107,6 +108,7 @@ function toQuote(l: LiveQuote, avgVolume: ReadonlyMap<string, number>): Quote {
 
 async function tick(s: FeedState) {
   let delayMs = ERROR_RETRY_MS;
+  const tickStartedAt = Date.now();
   try {
     const now = new Date();
     const today = wibDate(now);
@@ -190,6 +192,13 @@ async function tick(s: FeedState) {
     }
 
     emit(s, { type: "status", status: s.status });
+    logCapture({
+      state: "ok",
+      watchlist: s.watchlist.length,
+      quotes: quotes.length,
+      lagSeconds: s.status.lagSeconds,
+      durationMs: Date.now() - tickStartedAt,
+    });
     delayMs = intervalFor(now);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -202,6 +211,12 @@ async function tick(s: FeedState) {
       marketOpen: isMarketHours(new Date()),
     };
     emit(s, { type: "status", status: s.status });
+    logCapture({
+      state: "error",
+      watchlist: s.watchlist.length,
+      durationMs: Date.now() - tickStartedAt,
+      message,
+    });
     if (blocked) delayMs = BLOCK_BACKOFF_MS;
   }
   await sleep(delayMs);

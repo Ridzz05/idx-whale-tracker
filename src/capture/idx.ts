@@ -93,7 +93,8 @@ async function fetchChunk(codes: string[], gap: number): Promise<z.infer<typeof 
       return { rows, blocked };
     `),
     LiveResultSchema,
-    budget
+    budget,
+    "GetTradingInfoDaily"
   );
 }
 
@@ -142,7 +143,12 @@ export function parseIdNumber(s: string): number {
 }
 
 export async function fetchIndexList(): Promise<IndexQuote[]> {
-  const rows = await getRelay().evaluate(script(`return await J("/Home/GetIndexList");`), IndexListSchema);
+  const rows = await getRelay().evaluate(
+    script(`return await J("/Home/GetIndexList");`),
+    IndexListSchema,
+    45_000,
+    "GetIndexList"
+  );
   return rows
     .map((r) => ({
       code: r.IndexCode,
@@ -162,7 +168,9 @@ export async function fetchTopByValue(n: number): Promise<string[]> {
       const j = await J("/TradingSummary/GetStockSummary?length=9999&start=0");
       return (j.data || []).filter((x) => /^[A-Z0-9]{4}$/.test(x.StockCode)).map((x) => ({ code: x.StockCode, value: x.Value || 0 }));
     `),
-    SummarySchema
+    SummarySchema,
+    45_000,
+    "GetStockSummary"
   );
   const codes = rows
     .sort((a, b) => b.value - a.value)
@@ -186,7 +194,9 @@ export async function fetchTradingCalendar(sessions: number): Promise<string[]> 
       const rows = j.replies || [];
       return { code: "BBCA", dates: rows.map((r) => String(r.Date).slice(0, 10)).filter((d) => /^\\d{4}-\\d{2}-\\d{2}$/.test(d)) };
     `),
-    CalendarSchema
+    CalendarSchema,
+    45_000,
+    "GetTradingInfoSS"
   );
   // IDX publishes a day's summary after that session closes, so today is included and
   // simply comes back empty before then; fetchDayData drops empty days instead of failing.
@@ -242,7 +252,8 @@ async function fetchDayChunk(dates: string[], gap: number): Promise<DayData[]> {
       return out;
     `),
     z.array(DayResultSchema),
-    budget
+    budget,
+    "GetStockSummary+GetIndexSummary"
   );
 }
 
@@ -282,6 +293,7 @@ export async function fetchCompanyProfiles(): Promise<z.infer<typeof ProfilesLis
         code: x.KodeEmiten, name: String(x.NamaEmiten || "").trim(), sector: x.Sektor || null, industry: x.Industri || null }));
     `),
     ProfilesListSchema,
-    60_000
+    60_000,
+    "GetCompanyProfiles"
   );
 }
