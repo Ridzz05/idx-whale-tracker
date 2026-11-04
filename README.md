@@ -131,3 +131,7 @@ npm run build
 | `src/analytics/` | Skor bandar dan rotasi sektor |
 | `src/ingest/` | Impor xlsx KSEI dan backfill pasar dari IDX |
 | `src/app/` | Halaman dan route API |
+
+## Lisensi
+
+MIT, lihat [LICENSE](LICENSE). Kode bebas dipakai dan diubah. Data IDX tidak termasuk dalam lisensi ini karena tidak ada data IDX yang disimpan di repositori.
