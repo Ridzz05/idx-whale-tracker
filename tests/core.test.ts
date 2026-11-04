@@ -124,11 +124,40 @@ describe("computeSectorRotation", () => {
     expect(res.ihsg.ret21d).toBeCloseTo(0.05, 6);
     expect(res.sectors.length).toBe(2);
     expect(res.sectors[0].sector).toBe("Energy");
-    expect(res.sectors[0].ret21d).toBeCloseTo(0.2, 6); // mean(0.15, 0.25)
+    expect(res.sectors[0].ret21d).toBeCloseTo(0.2, 6); // median(0.15, 0.25) = mean here, two values
     expect(res.sectors[0].rel21d).toBeCloseTo(0.15, 6); // 0.20 - 0.05
     expect(res.sectors[1].sector).toBe("Tech");
     expect(res.sectors[1].ret21d).toBeCloseTo(-0.05, 6);
     expect(res.sectors[1].rel21d).toBeCloseTo(-0.1, 6);
+  });
+
+  it("ignores an extreme outlier that would drag the sector mean", () => {
+    const series = (ratio21: number) => {
+      const arr: { date: string; close: number }[] = [];
+      for (let i = 0; i < 65; i++) {
+        const d = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);
+        arr.push({ date: d, close: 100 });
+      }
+      arr[64].close = 100 * ratio21;
+      return arr;
+    };
+
+    const res = computeSectorRotation(
+      [
+        { code: "AAA", sector: "Konsumen", closes: series(0.9) },
+        { code: "BBB", sector: "Konsumen", closes: series(0.95) },
+        { code: "CCC", sector: "Konsumen", closes: series(1.0) },
+        // One micro-cap multiplied 24x. Returns are -0.1, -0.05, 0, +23:
+        // the mean is +5.71 (571%), the median is -0.025 — the sector is not dragged.
+        { code: "DDD", sector: "Konsumen", closes: series(24) },
+      ],
+      series(1.0)
+    );
+
+    const sector = res.sectors.find((s) => s.sector === "Konsumen");
+    expect(sector?.ret21d).toBeCloseTo(-0.025, 6);
+    // The outlier still shows up where it belongs: in the top movers list.
+    expect(sector?.topStocks[0].code).toBe("DDD");
   });
 });
 
