@@ -23,11 +23,15 @@ function windowReturn(closes: { date: string; close: number }[], n: number): num
   return last / prev - 1;
 }
 
-function mean(vals: number[]): number | null {
+/**
+ * Median, not mean: one micro-cap that multiplied 23x (MKNT +2300% in the 21-day window)
+ * moved a whole sector by 16 percentage points when averaging. The median ignores it.
+ */
+function median(vals: number[]): number | null {
   if (vals.length === 0) return null;
-  let s = 0;
-  for (const v of vals) s += v;
-  return s / vals.length;
+  const s = [...vals].sort((a, b) => a - b);
+  const mid = s.length >> 1;
+  return s.length % 2 === 1 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
 export function computeSectorRotation(
@@ -83,9 +87,9 @@ export function computeSectorRotation(
 
   const sectors: SectorRotationRow[] = [];
   for (const [sector, b] of bySector.entries()) {
-    const ret5d = mean(b.r5);
-    const ret21d = mean(b.r21);
-    const ret63d = mean(b.r63);
+    const ret5d = median(b.r5);
+    const ret21d = median(b.r21);
+    const ret63d = median(b.r63);
     const rel21d =
       ret21d !== null && ihsg.ret21d !== null ? ret21d - ihsg.ret21d : null;
     const topStocks = [...b.members21]

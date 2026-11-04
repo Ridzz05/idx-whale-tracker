@@ -26,7 +26,7 @@ export default async function SectorRotationPage() {
     <>
       <PageHeader
         title="Sector Rotation"
-        description="Rata-rata return equal-weight per sektor untuk 5, 21, dan 63 sesi bursa, dibandingkan dengan IHSG."
+        description="Median return per sektor untuk 5, 21, dan 63 sesi bursa, dibandingkan dengan IHSG. Median dipakai supaya satu saham ekstrem tidak menggeser angka sektor."
         meta={
           <span className="font-mono" style={{ fontVariantNumeric: "tabular-nums" }}>
             IHSG{" "}

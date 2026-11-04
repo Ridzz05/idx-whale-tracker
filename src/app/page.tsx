@@ -57,7 +57,7 @@ export default function OverviewPage() {
       title: "Sector Rotation",
       stat: nf.format(s.sectorCount),
       unit: "sektor",
-      text: "Return rata-rata per sektor untuk 5, 21, dan 63 sesi, dibanding IHSG.",
+      text: "Median return per sektor untuk 5, 21, dan 63 sesi, dibanding IHSG.",
       span: "lg:col-span-5",
       tilt: "rotate-[0.3deg]",
     },
