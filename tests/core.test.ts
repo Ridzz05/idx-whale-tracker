@@ -12,6 +12,7 @@ import {
   parseOwnershipXlsx,
 } from "@/ingest/ownership";
 import { initDb, resetDbForTests } from "@/db/client";
+import { whaleDeltas } from "@/db/queries";
 import { retrieve } from "@/rag/retrieve";
 import { assertSafePublicUrl } from "@/web/fetch";
 
@@ -245,5 +246,53 @@ describe("RAG FTS5 retrieve safety & SSRF protection", () => {
     expect(() => assertSafePublicUrl("http://10.0.0.1/")).toThrow(/SSRF/);
     expect(() => assertSafePublicUrl("file:///etc/passwd")).toThrow(/Protokol/);
     expect(assertSafePublicUrl("https://www.idx.co.id/").hostname).toBe("www.idx.co.id");
+  });
+});
+
+describe("whaleDeltas", () => {
+  it("reports buys, sells, entrants and exits between two periods", () => {
+    const db = new DatabaseSync(":memory:");
+    initDb(db);
+    resetDbForTests(db);
+
+    db.prepare(`INSERT INTO stocks (code, name, sector, last_price) VALUES ('AAAA', 'Saham A', 'Energi', 100)`).run();
+    const addInvestor = db.prepare(`INSERT INTO investors (id, key, name, type, local_foreign) VALUES (?, ?, ?, 'Corporation', ?)`);
+    addInvestor.run(1, "k1", "PEMBELI", "L");
+    addInvestor.run(2, "k2", "PENJUAL", "F");
+    addInvestor.run(3, "k3", "PENDATANG", "L");
+    addInvestor.run(4, "k4", "PERGI", "F");
+    addInvestor.run(5, "k5", "DIAM", "L");
+
+    const addHolding = db.prepare(
+      `INSERT INTO holdings (period, code, investor_id, shares_scripless, shares_scrip, total_shares, pct)
+       VALUES (?, 'AAAA', ?, ?, 0, ?, ?)`
+    );
+    // Previous period: 1 buys later, 2 sells later, 4 leaves, 5 unchanged.
+    addHolding.run("2026-08-31", 1, 1_000, 1_000, 1);
+    addHolding.run("2026-08-31", 2, 5_000, 5_000, 5);
+    addHolding.run("2026-08-31", 4, 2_000, 2_000, 2);
+    addHolding.run("2026-08-31", 5, 3_000, 3_000, 3);
+    // Current period: 1 up, 2 down, 3 new, 4 gone, 5 unchanged.
+    addHolding.run("2026-09-30", 1, 4_000, 4_000, 4);
+    addHolding.run("2026-09-30", 2, 1_000, 1_000, 1);
+    addHolding.run("2026-09-30", 3, 7_000, 7_000, 7);
+    addHolding.run("2026-09-30", 5, 3_000, 3_000, 3);
+
+    const rows = whaleDeltas("2026-08-31", "2026-09-30");
+    const byId = new Map(rows.map((r) => [r.investor_id, r]));
+
+    expect(rows.length).toBe(4); // the unchanged holder is dropped
+    expect(byId.get(1)?.status).toBe("up");
+    expect(byId.get(1)?.delta_shares).toBe(3_000);
+    expect(byId.get(1)?.delta_pct).toBeCloseTo(3, 6);
+    expect(byId.get(1)?.delta_value_idr).toBe(300_000); // 3.000 lembar x Rp100
+    expect(byId.get(2)?.status).toBe("down");
+    expect(byId.get(2)?.delta_shares).toBe(-4_000);
+    expect(byId.get(3)?.status).toBe("new");
+    expect(byId.get(3)?.prev_shares).toBe(0);
+    expect(byId.get(4)?.status).toBe("exit");
+    expect(byId.get(4)?.cur_shares).toBe(0);
+    expect(byId.get(4)?.delta_shares).toBe(-2_000);
+    expect(byId.has(5)).toBe(false);
   });
 });

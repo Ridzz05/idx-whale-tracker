@@ -13,6 +13,7 @@ import {
   RefreshCw,
   ScrollText,
   Users,
+  Waves,
 } from "lucide-react";
 import { ChatPanel } from "./ChatPanel";
 import { ChatOpenProvider } from "./chat-context";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Overview", short: "Home", Icon: House },
   { href: "/stocks", label: "Stocks", short: "Stocks", Icon: ChartCandlestick },
   { href: "/investors", label: "Investors", short: "Investor", Icon: Users },
+  { href: "/whales", label: "Whale Flow", short: "Whale", Icon: Waves },
   { href: "/sector-rotation", label: "Sector Rotation", short: "Sektor", Icon: RefreshCw },
   { href: "/bandar-detector", label: "Bandar Detector", short: "Bandar", Icon: Radar },
   { href: "/logs", label: "Logs", short: "Log", Icon: ScrollText },
@@ -105,7 +107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav
           aria-label="Navigasi utama"
-          className="fixed inset-x-0 bottom-0 z-[100] grid grid-cols-7 gap-1 border-t border-edge bg-card px-1 pt-2"
+          className="fixed inset-x-0 bottom-0 z-[100] grid grid-cols-8 gap-1 border-t border-edge bg-card px-1 pt-2"
           style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
         >
           {NAV_ITEMS.map(({ href, short, Icon }) => {
