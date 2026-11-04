@@ -33,7 +33,6 @@ export default async function InvestorDetailPage({ params }: { params: Promise<{
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             <span>{inv.type}</span>
             <OriginBadge lf={inv.local_foreign} />
-            {inv.period && <span>Periode {inv.period}</span>}
           </div>
         </div>
         <StatTile

@@ -38,7 +38,6 @@ export default async function StockDetailPage({ params }: { params: Promise<{ co
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             {stock.sector && <span>{stock.sector}</span>}
             {stock.industry && <span>{stock.industry}</span>}
-            {stock.period && <span>Periode KSEI {stock.period}</span>}
           </div>
         </div>
         <div className="flex flex-wrap gap-4">

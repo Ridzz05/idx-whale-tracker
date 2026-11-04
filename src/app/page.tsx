@@ -39,7 +39,7 @@ export default function OverviewPage() {
       title: "Investors",
       stat: nf.format(s.investorCount),
       unit: "investor",
-      text: `Pemegang di atas 1% dengan ${nf.format(s.holdingCount)} posisi pada periode ${s.period}. Buka satu investor untuk melihat portofolio dan alokasi sektornya.`,
+      text: `Pemegang di atas 1% dengan ${nf.format(s.holdingCount)} posisi. Buka satu investor untuk melihat portofolio dan alokasi sektornya.`,
       span: "lg:col-span-7",
       tilt: "-rotate-[0.4deg]",
     },
@@ -85,7 +85,7 @@ export default function OverviewPage() {
           </h1>
           <p className="mt-4 max-w-[60ch] text-lg text-muted">
             Kepemilikan {nf.format(s.stockCount)} emiten oleh {nf.format(s.investorCount)} investor, dari data bulanan
-            KSEI per {s.period}. Harga, rotasi sektor, dan alert pasar berjalan di atasnya.
+            KSEI. Harga, rotasi sektor, dan alert pasar berjalan di atasnya.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link href="/investors" className="btn text-lg">

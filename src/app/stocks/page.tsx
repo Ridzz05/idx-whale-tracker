@@ -13,14 +13,13 @@ export default async function StocksPage({
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const page = Math.max(1, Number(sp.page ?? "1") || 1);
-  const { items, total, pageSize, period } = listStocks({ q, page, pageSize: 50 });
+  const { items, total, pageSize } = listStocks({ q, page, pageSize: 50 });
 
   return (
     <>
       <PageHeader
         title="Stocks"
         description="Emiten IDX dengan harga terakhir, pemegang terbesar, dan konsentrasi kepemilikan di atas 1%."
-        meta={period ? `Periode data KSEI: ${period}` : undefined}
       />
 
       <SearchBox action="/stocks" defaultValue={q} label="Cari saham" placeholder="Kode atau nama emiten" />

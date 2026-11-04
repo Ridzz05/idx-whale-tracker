@@ -20,7 +20,6 @@ export default async function InvestorsPage({
       <PageHeader
         title="Investors"
         description="Pemegang saham di atas 1% di bursa efek Indonesia, dari data bulanan KSEI."
-        meta={period ? `Periode data KSEI: ${period}` : undefined}
       />
 
       <SearchBox action="/investors" defaultValue={q} label="Cari investor" placeholder="Nama investor" />
