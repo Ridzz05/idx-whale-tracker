@@ -50,6 +50,7 @@ Alurnya:
 
 - `/` ringkasan pasar, penggerak terbesar, dan catatan sumber data.
 - `/investors` daftar pemegang di atas 1% dengan tipe dan status lokal atau asing.
+- `/whales` perubahan kepemilikan antar dua periode KSEI: siapa menambah, siapa mengurangi, siapa masuk dan keluar.
 - `/stocks` harga terakhir, pemegang terbesar, dan konsentrasi kepemilikan.
 - `/sector-rotation` return 5, 21, dan 63 sesi per sektor dibanding IHSG.
 - `/bandar-detector` proksi akumulasi dan distribusi dari harga dan volume, bukan data broker.
@@ -73,6 +74,8 @@ Seluruh angka di bawah diambil dari capture IDX pada 4 November 2026, 16:00 WIB.
 
 ![Log API dan capture](docs/screens/logs.png)
 
+![Whale Flow, perubahan kepemilikan antar periode](docs/screens/whales.jpg)
+
 ## Menjalankan
 
 Prasyarat: Node.js 24, Chrome, dan OMP dengan relay aktif.
@@ -93,6 +96,8 @@ npm run dev
 ```
 
 `sync:market` menarik 125 sesi bursa secara default dan memakai dua permintaan per tanggal. Butuh beberapa menit. Kalau satu tanggal saja gagal, seluruh backfill dibatalkan supaya riwayat yang ada tidak terpotong. Ulangi saat IDX sudah tidak membatasi.
+
+`sync:ownership` mengimpor setiap xlsx di `data_src/1pct` dan melewati periode yang sudah ada, jadi aman dijalankan berulang. Unduhan otomatis dari IDX tidak lagi menemukan berkas agregat: kata kunci "1%" di Keterbukaan Informasi kini hanya mengembalikan PDF laporan emiten. Unduh berkasnya manual ke folder itu, atau salin dari arsip publik. Rilis bulanan datang dengan jeda 3–4 minggu setelah tanggal periode, pernah sampai 56 hari, jadi `/whales` selalu menyebut periode yang dipakai.
 
 Variabel di `.env.local`:
 

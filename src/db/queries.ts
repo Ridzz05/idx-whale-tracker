@@ -495,6 +495,94 @@ export interface OverviewStats {
   distributionCount: number;
 }
 
+export interface WhaleDeltaRow {
+  code: string;
+  name: string;
+  sector: string | null;
+  investor_id: number;
+  investor_name: string;
+  investor_type: string;
+  local_foreign: "L" | "F";
+  prev_shares: number;
+  cur_shares: number;
+  /** Positive when the holder bought more, negative when it sold. */
+  delta_shares: number;
+  /** Change in ownership percentage, in percentage points. */
+  delta_pct: number;
+  status: "up" | "down" | "new" | "exit";
+  last_price: number | null;
+  delta_value_idr: number | null;
+}
+
+export interface HoldingPeriod {
+  period: string;
+  holdings: number;
+  stocks: number;
+  investors: number;
+}
+
+/** Every imported KSEI period, newest first, with its row counts. */
+export function holdingPeriods(): HoldingPeriod[] {
+  return getDb()
+    .prepare(
+      `SELECT period, COUNT(*) AS holdings, COUNT(DISTINCT code) AS stocks, COUNT(DISTINCT investor_id) AS investors
+       FROM holdings GROUP BY period ORDER BY period DESC`
+    )
+    .all() as unknown as HoldingPeriod[];
+}
+
+/**
+ * Compares two holding periods. Rows come from the union of both periods, so a holder
+ * that dropped below the 1% filing threshold still appears as `exit` instead of vanishing.
+ */
+export function whaleDeltas(fromPeriod: string, toPeriod: string): WhaleDeltaRow[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `WITH keys AS (
+         SELECT DISTINCT code, investor_id FROM holdings WHERE period IN (?, ?)
+       )
+       SELECT s.code, s.name, s.sector,
+              k.investor_id, i.name AS investor_name, i.type AS investor_type, i.local_foreign,
+              COALESCE(p.total_shares, 0) AS prev_shares,
+              COALESCE(c.total_shares, 0) AS cur_shares,
+              COALESCE(c.total_shares, 0) - COALESCE(p.total_shares, 0) AS delta_shares,
+              COALESCE(c.pct, 0) - COALESCE(p.pct, 0) AS delta_pct,
+              CASE WHEN p.investor_id IS NULL THEN 'new'
+                   WHEN c.investor_id IS NULL THEN 'exit'
+                   WHEN c.total_shares > p.total_shares THEN 'up'
+                   ELSE 'down' END AS status,
+              s.last_price,
+              CASE WHEN s.last_price IS NULL THEN NULL
+                   ELSE (COALESCE(c.total_shares, 0) - COALESCE(p.total_shares, 0)) * s.last_price END AS delta_value_idr
+       FROM keys k
+       JOIN stocks s ON s.code = k.code
+       JOIN investors i ON i.id = k.investor_id
+       LEFT JOIN holdings p ON p.period = ? AND p.code = k.code AND p.investor_id = k.investor_id
+       LEFT JOIN holdings c ON c.period = ? AND c.code = k.code AND c.investor_id = k.investor_id
+       WHERE COALESCE(c.total_shares, 0) != COALESCE(p.total_shares, 0)`
+    )
+    .all(fromPeriod, toPeriod, fromPeriod, toPeriod);
+  return rows as unknown as WhaleDeltaRow[];
+}
+
+/** Whole days since the period date, so the UI can state how stale ownership data is. */
+export function periodAgeDays(period: string, now = new Date()): number {
+  const then = Date.parse(`${period}T00:00:00Z`);
+  if (Number.isNaN(then)) return 0;
+  return Math.max(0, Math.floor((now.getTime() - then) / 86_400_000));
+}
+
+/**
+ * Releases lag 3-4 weeks after the period date, worst observed 56 days, so anything past
+ * 45 days is worth saying out loud. Exact day 45 is still treated as on time.
+ */
+export const STALE_PERIOD_DAYS = 45;
+
+export function isPeriodStale(period: string, now = new Date()): boolean {
+  return periodAgeDays(period, now) > STALE_PERIOD_DAYS;
+}
+
 export function overviewStats(): OverviewStats {
   const db = getDb();
   const period = latestPeriod();
