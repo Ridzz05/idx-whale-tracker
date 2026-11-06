@@ -14,6 +14,7 @@ import {
 import { initDb, resetDbForTests } from "@/db/client";
 import { retrieve } from "@/rag/retrieve";
 import { assertSafePublicUrl } from "@/web/fetch";
+import { isRecoverableSessionError } from "@/capture/relay";
 
 describe("scoreStock (Bandar Detector)", () => {
   it("detects accumulation when close is near high with high volume over 7 sessions", () => {
@@ -245,5 +246,18 @@ describe("RAG FTS5 retrieve safety & SSRF protection", () => {
     expect(() => assertSafePublicUrl("http://10.0.0.1/")).toThrow(/SSRF/);
     expect(() => assertSafePublicUrl("file:///etc/passwd")).toThrow(/Protokol/);
     expect(assertSafePublicUrl("https://www.idx.co.id/").hostname).toBe("www.idx.co.id");
+  });
+});
+
+describe("isRecoverableSessionError", () => {
+  it("retries detached sessions and stale session ids, but not schema or HTTP failures", () => {
+    // Chrome reports this when the tab navigated, reloaded, or closed mid-call.
+    expect(isRecoverableSessionError("Detached while handling command.")).toBe(true);
+    expect(isRecoverableSessionError("Session with given id not found.")).toBe(true);
+    expect(isRecoverableSessionError("No target with given id found")).toBe(true);
+    // A malformed payload or a blocked request must not be retried on another tab.
+    expect(isRecoverableSessionError("Skrip di halaman IDX gagal: TypeError")).toBe(false);
+    expect(isRecoverableSessionError("GetTradingInfoDaily HTTP 403")).toBe(false);
+    expect(isRecoverableSessionError("Relay tidak menjawab dalam 45 detik (Runtime.evaluate).")).toBe(false);
   });
 });

@@ -33,6 +33,16 @@ const MAX_TAB_ATTEMPTS = 3;
 /** How long a Cloudflare-challenged tab is skipped before it is tried again. */
 const BAD_TAB_TTL_MS = 5 * 60_000;
 
+/**
+ * CDP drops the attached session when the tab navigates, reloads, or is closed mid-call.
+ * Chrome reports that as "Detached while handling command." — retrying on a fresh session
+ * is correct there, exactly like a stale session id. Matching only /session|target/i let
+ * this message end a whole capture cycle while a healthy IDX tab was still open.
+ */
+export function isRecoverableSessionError(message: string): boolean {
+  return /session|target|detached/i.test(message);
+}
+
 /** Zod schemas return arrays for list endpoints and objects for the per-ticker chunk. */
 function countRows(value: unknown): number | null {
   if (Array.isArray(value)) return value.length;
@@ -138,7 +148,7 @@ export class RelayClient {
           this.#session = null;
           continue;
         }
-        if (/session|target/i.test(err.message)) {
+        if (isRecoverableSessionError(err.message)) {
           this.#session = null;
           continue;
         }
